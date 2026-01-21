@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>離線 OCR 掃描統計工具 | Cyberpunk Edition</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/design-system.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/export.css">
+    <link rel="stylesheet" href="css/chunking.css">
+</head>
+
+<body>
+    <!-- 登入畫面 -->
+    <div id="login-screen" class="screen active">
+        <div class="login-container">
+            <div class="neon-logo">
+                <h1>OCR 掃描統計工具</h1>
+                <p class="subtitle">Cyberpunk Edition</p>
+            </div>
+            <form id="login-form" class="neon-form">
+                <div class="form-group">
+                    <label for="username">使用者名稱</label>
+                    <input type="text" id="username" placeholder="請輸入使用者名稱" required>
+                </div>
+                <div class="form-group">
+                    <label for="tax-id">買方統一編號</label>
+                    <input type="text" id="tax-id" pattern="\d{8}" placeholder="8位數字" required>
+                </div>
+                <button type="submit" class="btn-primary">登入系統</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 主應用畫面 -->
+    <div id="app-screen" class="screen">
+        <!-- 側邊欄 -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>OCR 工具</h2>
+                <div id="current-user" class="user-badge"></div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <a href="#" data-page="dashboard" class="nav-item active">
+                    <span class="icon">📊</span>
+                    <span>總覽儀表</span>
+                </a>
+                <a href="#" data-page="upload" class="nav-item">
+                    <span class="icon">📁</span>
+                    <span>批量上傳</span>
+                </a>
+                <a href="#" data-page="ocr" class="nav-item">
+                    <span class="icon">🔍</span>
+                    <span>OCR 擷取</span>
+                </a>
+                <a href="#" data-page="chunking" class="nav-item">
+                    <span class="icon">🎯</span>
+                    <span>智能分塊</span>
+                </a>
+                <a href="#" data-page="validation" class="nav-item">
+                    <span class="icon">✓</span>
+                    <span>驗算核對</span>
+                </a>
+                <a href="#" data-page="export" class="nav-item">
+                    <span class="icon">📄</span>
+                    <span>匯出報表</span>
+                </a>
+                <a href="#" data-page="settings" class="nav-item">
+                    <span class="icon">⚙</span>
+                    <span>後台設定</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="account-list" class="account-list"></div>
+                <button id="logout-btn" class="btn-secondary">登出</button>
+            </div>
+        </aside>
+
+        <!-- 主內容區 -->
+        <main class="main-content">
+            <!-- 總覽儀表頁 -->
+            <section id="page-dashboard" class="page active">
+                <h1 class="page-title">總覽儀表</h1>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">已處理檔案</div>
+                        <div class="kpi-value" id="kpi-files">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">擷取金額總計</div>
+                        <div class="kpi-value number" id="kpi-amount">NT$ 0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">需確認項目</div>
+                        <div class="kpi-value status-review" id="kpi-review">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">驗算狀態</div>
+                        <div class="kpi-value" id="kpi-validation">待驗算</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 批量上傳頁 -->
+            <section id="page-upload" class="page">
+                <h1 class="page-title">批量上傳</h1>
+                <div class="upload-zone" id="upload-zone">
+                    <div class="upload-icon">📁</div>
+                    <p>拖曳圖片或 PDF 至此，或點擊選擇檔案</p>
+                    <input type="file" id="file-input" multiple accept="image/*,.pdf" hidden>
+                    <button class="btn-primary" onclick="document.getElementById('file-input').click()">選擇檔案</button>
+                </div>
+                <div id="file-preview-grid" class="file-preview-grid"></div>
+            </section>
+
+            <!-- OCR 擷取頁 -->
+            <section id="page-ocr" class="page">
+                <h1 class="page-title">OCR 擷取</h1>
+                <div class="ocr-controls">
+                    <button id="start-ocr-btn" class="btn-primary">開始 OCR 識別</button>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="ocr-progress"></div>
+                    </div>
+                </div>
+                <div id="ocr-results" class="ocr-results"></div>
+            </section>
+
+            <!-- 智能分塊頁 -->
+            <section id="page-chunking" class="page">
+                <h1 class="page-title">智能分塊分析</h1>
+                <div class="chunking-container">
+                    <div class="chunking-main">
+                        <div class="chunking-toolbar">
+                            <button id="toggle-bbox-btn" class="btn-secondary">顯示/隱藏邊界框</button>
+                            <button id="toggle-labels-btn" class="btn-secondary">顯示/隱藏標籤</button>
+                            <button id="toggle-confidence-btn" class="btn-secondary">顯示/隱藏信心度</button>
+                            <button id="export-annotated-btn" class="btn-primary">匯出標註圖片</button>
+                        </div>
+                        <div class="canvas-container">
+                            <canvas id="chunk-canvas"></canvas>
+                        </div>
+                    </div>
+                    <div class="chunking-sidebar">
+                        <h3>偵測到的欄位</h3>
+                        <div id="field-list" class="field-list"></div>
+                        <h3>圖例</h3>
+                        <div id="legend-list" class="legend-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 驗算核對頁 -->
+            <section id="page-validation" class="page">
+                <h1 class="page-title">驗算核對</h1>
+                <div class="validation-summary" id="validation-summary"></div>
+                <div class="data-table-container">
+                    <table class="data-table" id="validation-table">
+                        <thead>
+                            <tr>
+                                <th>項目</th>
+                                <th>擷取值</th>
+                                <th>修正值</th>
+                                <th>狀態</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 匯出報表頁 -->
+            <section id="page-export" class="page">
+                <h1 class="page-title">匯出報表</h1>
+                <div class="export-controls">
+                    <h3>匯出模式</h3>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="export-mode" value="all" checked>
+                            <span>全批次合併成一份</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="export-mode" value="by-file">
+                            <span>依檔案分檔</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="export-mode" value="by-page">
+                            <span>依頁分檔</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="export-mode" value="selected">
+                            <span>勾選匯出</span>
+                        </label>
+                    </div>
+                    <button id="export-pdf-btn" class="btn-primary">匯出 PDF</button>
+                </div>
+                <div id="export-preview" class="export-preview"></div>
+            </section>
+
+            <!-- 後台設定頁 -->
+            <section id="page-settings" class="page">
+                <h1 class="page-title">後台設定</h1>
+                <div class="settings-grid">
+                    <div class="settings-card">
+                        <h3>金額關鍵字</h3>
+                        <textarea id="amount-keywords" rows="5" placeholder="每行一個關鍵字&#10;例如：金額、小計、合計"></textarea>
+                        <button class="btn-secondary save-settings" data-setting="amountKeywords">儲存</button>
+                    </div>
+                    <div class="settings-card">
+                        <h3>統編核對規則</h3>
+                        <input type="text" id="tax-id-pattern" placeholder="正規表達式，例如：\d{8}">
+                        <button class="btn-secondary save-settings" data-setting="taxIdPattern">儲存</button>
+                    </div>
+                    <div class="settings-card">
+                        <h3>會計科目分類</h3>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enable-categories" checked>
+                            <span>啟用分類功能</span>
+                        </label>
+                        <textarea id="categories" rows="5" placeholder="每行一個分類&#10;例如：辦公用品、差旅費"></textarea>
+                        <button class="btn-secondary save-settings" data-setting="categories">儲存</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 全螢幕預覽 Modal -->
+    <div id="fullscreen-modal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close">&times;</button>
+            <img id="fullscreen-image" src="" alt="預覽">
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="lib/paddleocr/tesseract.min.js"></script>
+    <script src="lib/pdfjs/pdf.min.js"></script>
+    <script src="lib/html2canvas/html2canvas.min.js"></script>
+    <script src="lib/jspdf/jspdf.umd.min.js"></script>
+
+    <!-- Application Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/ocr-engine-optimized.js"></script>
+    <script src="js/chunker.js"></script>
+    <script src="js/invoice-detector.js"></script>
+    <script src="js/chunk-visualizer.js"></script>
+    <script src="js/extractor.js"></script>
+    <script src="js/validator.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/app-chunking.js"></script>
+</body>
+
+</html>

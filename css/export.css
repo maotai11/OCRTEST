@@ -1,0 +1,226 @@
+/* ========================================
+   Export-Only Styles
+   匯出專用樣式（html2canvas 友善）
+   ======================================== */
+
+/* 
+   注意事項：
+   1. 避免使用 filter、mix-blend-mode、backdrop-filter
+   2. 避免使用 position: fixed（會造成截圖錯位）
+   3. 確保四周留白避免裁切
+   4. 使用純色高對比樣式
+*/
+
+.export-container {
+    padding: 40px;
+    background: #ffffff;
+    color: #000000;
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+/* 匯出標題 */
+.export-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #00f0ff;
+}
+
+/* 匯出資訊區塊 */
+.export-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.export-info-item {
+    padding: 12px;
+    background: #f5f5f5;
+    border-left: 4px solid #00f0ff;
+}
+
+.export-info-label {
+    font-size: 12px;
+    color: #666666;
+    margin-bottom: 4px;
+}
+
+.export-info-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: #000000;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* 匯出表格 */
+.export-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+}
+
+.export-table thead {
+    background: #00f0ff;
+}
+
+.export-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 700;
+    color: #000000;
+    border: 1px solid #000000;
+}
+
+.export-table td {
+    padding: 10px;
+    border: 1px solid #cccccc;
+    color: #000000;
+}
+
+.export-table tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* 匯出狀態標籤（純色版） */
+.export-status {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.export-status.normal {
+    background: #00ff88;
+    color: #000000;
+    border: 1px solid #000000;
+}
+
+.export-status.review {
+    background: #ffaa00;
+    color: #000000;
+    border: 1px solid #000000;
+}
+
+.export-status.error {
+    background: #ff3366;
+    color: #ffffff;
+    border: 1px solid #000000;
+}
+
+.export-status.modified {
+    background: #00aaff;
+    color: #000000;
+    border: 1px solid #000000;
+}
+
+/* 匯出數字（等寬字體） */
+.export-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+/* 匯出驗算摘要 */
+.export-validation-summary {
+    padding: 16px;
+    background: #f5f5f5;
+    border: 2px solid #00f0ff;
+    margin-bottom: 24px;
+}
+
+.export-validation-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #cccccc;
+}
+
+.export-validation-item:last-child {
+    border-bottom: none;
+}
+
+.export-validation-label {
+    font-weight: 700;
+    color: #000000;
+}
+
+.export-validation-value {
+    font-family: 'JetBrains Mono', monospace;
+    color: #000000;
+}
+
+.export-validation-error {
+    color: #ff3366;
+    font-weight: 700;
+}
+
+/* 分頁指示 */
+.export-page-break {
+    page-break-after: always;
+    margin: 40px 0;
+    border-bottom: 2px dashed #cccccc;
+}
+
+.export-page-number {
+    text-align: right;
+    font-size: 12px;
+    color: #666666;
+    margin-top: 20px;
+}
+
+/* 匯出頁尾 */
+.export-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 2px solid #00f0ff;
+    font-size: 12px;
+    color: #666666;
+    text-align: center;
+}
+
+/* 匯出時隱藏的元素 */
+.no-export {
+    display: none !important;
+}
+
+/* 確保圖片不超出邊界 */
+.export-image {
+    max-width: 100%;
+    height: auto;
+    margin: 16px 0;
+    border: 1px solid #cccccc;
+}
+
+/* 匯出差額提示 */
+.export-diff {
+    display: inline-block;
+    padding: 4px 8px;
+    background: #ffeeee;
+    border: 1px solid #ff3366;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #ff3366;
+    font-weight: 700;
+}
+
+/* 匯出備註區塊 */
+.export-notes {
+    padding: 16px;
+    background: #fffacd;
+    border-left: 4px solid #ffaa00;
+    margin: 16px 0;
+}
+
+.export-notes-title {
+    font-weight: 700;
+    color: #000000;
+    margin-bottom: 8px;
+}
+
+.export-notes-content {
+    color: #333333;
+    line-height: 1.6;
+}
