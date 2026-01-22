@@ -77,17 +77,22 @@ class Validator {
             };
         }
 
-        const expected = salesAmount.amount + taxAmount.amount;
-        const actual = totalAmount.amount;
-        const diff = actual - expected;
+        // 使用 Decimal.js 進行精準計算
+        const sales = new Decimal(salesAmount.amount);
+        const tax = new Decimal(taxAmount.amount);
+        const total = new Decimal(totalAmount.amount);
+        
+        const expected = sales.plus(tax);
+        const diff = total.minus(expected);
 
-        if (Math.abs(diff) > 0.01) { // 容許 0.01 的誤差
+        // 容許 1 元誤差
+        if (diff.abs().greaterThan(1)) {
             return {
                 isValid: false,
                 message: `銷售額 + 稅額 ≠ 合計`,
-                expected: formatAmount(expected),
-                actual: formatAmount(actual),
-                diff: formatAmount(diff),
+                expected: formatAmount(expected.toNumber()),
+                actual: formatAmount(total.toNumber()),
+                diff: formatAmount(diff.toNumber()),
                 warnings: []
             };
         }
@@ -126,17 +131,23 @@ class Validator {
             };
         }
 
-        const itemsTotal = items.reduce((sum, item) => sum + item.amount, 0);
-        const expected = salesAmount.amount;
-        const diff = itemsTotal - expected;
+        // 使用 Decimal.js 進行精準加總
+        let itemsTotal = new Decimal(0);
+        items.forEach(item => {
+            itemsTotal = itemsTotal.plus(new Decimal(item.amount));
+        });
 
-        if (Math.abs(diff) > 0.01) {
+        const expected = new Decimal(salesAmount.amount);
+        const diff = itemsTotal.minus(expected);
+
+        // 容許 1 元誤差
+        if (diff.abs().greaterThan(1)) {
             return {
                 isValid: false,
                 message: `品項金額加總 ≠ 銷售額`,
-                expected: formatAmount(expected),
-                actual: formatAmount(itemsTotal),
-                diff: formatAmount(diff),
+                expected: formatAmount(expected.toNumber()),
+                actual: formatAmount(itemsTotal.toNumber()),
+                diff: formatAmount(diff.toNumber()),
                 warnings: []
             };
         }

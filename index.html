@@ -123,6 +123,14 @@
             <section id="page-ocr" class="page">
                 <h1 class="page-title">OCR 擷取</h1>
                 <div class="ocr-controls">
+                    <div class="control-group">
+                        <label for="preprocess-mode">影像前處理模式：</label>
+                        <select id="preprocess-mode" class="select-input">
+                            <option value="none">無前處理</option>
+                            <option value="speed" selected>速度模式（灰階 + 二值化）</option>
+                            <option value="precision">精度模式（完整處理）</option>
+                        </select>
+                    </div>
                     <button id="start-ocr-btn" class="btn-primary">開始 OCR 識別</button>
                     <div class="progress-bar">
                         <div class="progress-fill" id="ocr-progress"></div>
@@ -240,15 +248,60 @@
     </div>
 
     <!-- JavaScript Libraries -->
-    <script src="lib/paddleocr/tesseract.min.js"></script>
+    <!-- Tesseract.js (OCR Engine) -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
+            onerror="this.onerror=null; this.src='lib/tesseract/tesseract.min.js'"></script>
+    
+    <!-- OpenCV.js (Image Preprocessing) -->
+    <script async src="https://cdn.jsdelivr.net/npm/@techstark/opencv-js/opencv.js"
+            onerror="this.onerror=null; this.src='lib/opencv/opencv.js'"></script>
+    
+    <!-- localForage (IndexedDB Storage) -->
+    <script src="https://cdn.jsdelivr.net/npm/localforage@latest/dist/localforage.min.js"
+            onerror="this.onerror=null; this.src='lib/localforage/localforage.min.js'"></script>
+    
+    <!-- Decimal.js (Precise Calculation) -->
+    <script src="https://cdn.jsdelivr.net/npm/decimal.js@latest/decimal.min.js"
+            onerror="this.onerror=null; this.src='lib/decimal/decimal.min.js'"></script>
+    
+    <!-- lodash (Utility Functions) -->
+    <script src="https://cdn.jsdelivr.net/npm/lodash@latest/lodash.min.js"
+            onerror="this.onerror=null; this.src='lib/lodash/lodash.min.js'"></script>
+    
+    <!-- Dropzone (Batch Upload) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/6.0.0-beta.2/dropzone.min.css"
+          onerror="this.onerror=null; this.href='lib/dropzone/dropzone.min.css'">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/6.0.0-beta.2/dropzone.min.js"
+            onerror="this.onerror=null; this.src='lib/dropzone/dropzone.min.js'"></script>
+    
+    <!-- Viewer.js (Image Preview) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.css"
+          onerror="this.onerror=null; this.href='lib/viewerjs/viewer.min.css'">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/viewerjs/1.11.6/viewer.min.js"
+            onerror="this.onerror=null; this.src='lib/viewerjs/viewer.min.js'"></script>
+    
+    <!-- Panzoom (PDF Canvas Zoom) -->
+    <script src="https://cdn.jsdelivr.net/npm/@panzoom/panzoom@latest/dist/panzoom.min.js"
+            onerror="this.onerror=null; this.src='lib/panzoom/panzoom.min.js'"></script>
+    
+    <!-- PDF.js -->
     <script src="lib/pdfjs/pdf.min.js"></script>
+    
+    <!-- html2canvas -->
     <script src="lib/html2canvas/html2canvas.min.js"></script>
+    
+    <!-- jsPDF -->
     <script src="lib/jspdf/jspdf.umd.min.js"></script>
 
     <!-- Application Scripts -->
     <script src="js/utils.js"></script>
+    <script src="js/storage-manager.js"></script>
     <script src="js/auth.js"></script>
-    <script src="js/ocr-engine-optimized.js"></script>
+    <script src="js/image-preprocessor.js"></script>
+    <script src="js/enhanced-ocr-engine.js"></script>
+    <script src="js/enhanced-pdf-processor.js"></script>
+    <script src="js/document-classifier.js"></script>
+    <script src="js/roi-extractor.js"></script>
     <script src="js/chunker.js"></script>
     <script src="js/invoice-detector.js"></script>
     <script src="js/chunk-visualizer.js"></script>

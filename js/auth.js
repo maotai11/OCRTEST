@@ -1,17 +1,41 @@
 // ========================================
-// 登入與分帳系統
+// 登入與分帳系統（使用 StorageManager）
 // ========================================
 
 class AuthManager {
     constructor() {
         this.currentUser = null;
-        this.users = this.loadUsers();
+        this.users = {};
+        this.isInitialized = false;
     }
 
     /**
-     * 從 localStorage 載入所有使用者
+     * 初始化（從 StorageManager 載入使用者）
      */
-    loadUsers() {
+    async initialize() {
+        if (this.isInitialized) return;
+
+        try {
+            await storageManager.initialize();
+            const allUsers = await storageManager.getAllUsers();
+            
+            allUsers.forEach(user => {
+                this.users[user.username] = user;
+            });
+
+            this.isInitialized = true;
+            console.log('AuthManager 初始化完成');
+        } catch (error) {
+            console.error('AuthManager 初始化失敗:', error);
+            // 降級到 localStorage
+            this.loadUsersFromLocalStorage();
+        }
+    }
+
+    /**
+     * 從 localStorage 載入所有使用者（降級策略）
+     */
+    loadUsersFromLocalStorage() {
         const users = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -20,16 +44,17 @@ class AuthManager {
                 users[username] = JSON.parse(localStorage.getItem(key));
             }
         }
-        return users;
+        this.users = users;
+        this.isInitialized = true;
     }
 
     /**
      * 登入
      * @param {string} username - 使用者名稱
      * @param {string} taxId - 買方統一編號
-     * @returns {Object} 使用者資料
+     * @returns {Promise<Object>} 使用者資料
      */
-    login(username, taxId) {
+    async login(username, taxId) {
         if (!username || !taxId) {
             throw new Error('請輸入使用者名稱與統一編號');
         }
@@ -38,13 +63,16 @@ class AuthManager {
             throw new Error('統一編號格式錯誤（需為 8 位數字）');
         }
 
-        const key = `ocr_user_${username}`;
-        let userData = localStorage.getItem(key);
+        // 確保已初始化
+        if (!this.isInitialized) {
+            await this.initialize();
+        }
+
+        const userId = `user_${username}`;
+        let userData = await storageManager.loadUserData(userId);
 
         if (userData) {
             // 現有使用者
-            userData = JSON.parse(userData);
-
             // 檢查統編是否一致
             if (userData.taxId !== taxId) {
                 throw new Error('統一編號與此帳號不符');
@@ -59,12 +87,13 @@ class AuthManager {
                     amountKeywords: ['金額', '小計', '合計', '總計', '銷售額', '稅額'],
                     taxIdPattern: '\\d{8}',
                     categories: ['辦公用品', '差旅費', '餐費', '交通費', '雜費'],
-                    enableCategories: true
+                    enableCategories: true,
+                    preprocessMode: 'speed' // 預設前處理模式
                 },
                 files: []
             };
 
-            localStorage.setItem(key, JSON.stringify(userData));
+            await storageManager.saveUserData(userId, userData);
         }
 
         this.currentUser = userData;
@@ -98,7 +127,7 @@ class AuthManager {
      * 切換使用者
      * @param {string} username - 使用者名稱
      */
-    switchUser(username) {
+    async switchUser(username) {
         const userData = this.users[username];
         if (!userData) {
             throw new Error('使用者不存在');
@@ -110,13 +139,13 @@ class AuthManager {
     /**
      * 儲存使用者資料
      */
-    saveCurrentUser() {
+    async saveCurrentUser() {
         if (!this.currentUser) {
             throw new Error('無當前使用者');
         }
 
-        const key = `ocr_user_${this.currentUser.username}`;
-        localStorage.setItem(key, JSON.stringify(this.currentUser));
+        const userId = `user_${this.currentUser.username}`;
+        await storageManager.saveUserData(userId, this.currentUser);
         this.users[this.currentUser.username] = this.currentUser;
     }
 
@@ -124,7 +153,7 @@ class AuthManager {
      * 更新設定
      * @param {Object} settings - 設定物件
      */
-    updateSettings(settings) {
+    async updateSettings(settings) {
         if (!this.currentUser) {
             throw new Error('無當前使用者');
         }
@@ -134,14 +163,14 @@ class AuthManager {
             ...settings
         };
 
-        this.saveCurrentUser();
+        await this.saveCurrentUser();
     }
 
     /**
      * 新增檔案記錄
      * @param {Object} fileData - 檔案資料
      */
-    addFile(fileData) {
+    async addFile(fileData) {
         if (!this.currentUser) {
             throw new Error('無當前使用者');
         }
@@ -152,7 +181,7 @@ class AuthManager {
             uploadedAt: new Date().toISOString()
         });
 
-        this.saveCurrentUser();
+        await this.saveCurrentUser();
     }
 
     /**
@@ -160,7 +189,7 @@ class AuthManager {
      * @param {string} fileId - 檔案 ID
      * @param {Object} updates - 更新資料
      */
-    updateFile(fileId, updates) {
+    async updateFile(fileId, updates) {
         if (!this.currentUser) {
             throw new Error('無當前使用者');
         }
@@ -176,7 +205,7 @@ class AuthManager {
             updatedAt: new Date().toISOString()
         };
 
-        this.saveCurrentUser();
+        await this.saveCurrentUser();
     }
 
     /**
@@ -190,13 +219,13 @@ class AuthManager {
      * 刪除檔案
      * @param {string} fileId - 檔案 ID
      */
-    deleteFile(fileId) {
+    async deleteFile(fileId) {
         if (!this.currentUser) {
             throw new Error('無當前使用者');
         }
 
         this.currentUser.files = this.currentUser.files.filter(f => f.id !== fileId);
-        this.saveCurrentUser();
+        await this.saveCurrentUser();
     }
 }
 

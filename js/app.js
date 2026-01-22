@@ -14,16 +14,21 @@ class App {
     /**
      * 初始化應用
      */
-    init() {
+    async init() {
+        // 初始化 StorageManager
+        await storageManager.initialize();
+        await authManager.initialize();
+
         // 檢查是否已登入
         const lastUser = localStorage.getItem('ocr_last_user');
         if (lastUser) {
             try {
                 const userData = JSON.parse(lastUser);
-                authManager.login(userData.username, userData.taxId);
+                await authManager.login(userData.username, userData.taxId);
                 this.showApp();
                 this.updateUI();
             } catch (error) {
+                console.error('自動登入失敗:', error);
                 this.showLogin();
             }
         } else {
@@ -57,30 +62,8 @@ class App {
             });
         });
 
-        // 檔案上傳
-        const uploadZone = document.getElementById('upload-zone');
-        const fileInput = document.getElementById('file-input');
-
-        uploadZone?.addEventListener('click', () => fileInput?.click());
-
-        uploadZone?.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadZone.classList.add('drag-over');
-        });
-
-        uploadZone?.addEventListener('dragleave', () => {
-            uploadZone.classList.remove('drag-over');
-        });
-
-        uploadZone?.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadZone.classList.remove('drag-over');
-            this.handleFileUpload(e.dataTransfer.files);
-        });
-
-        fileInput?.addEventListener('change', (e) => {
-            this.handleFileUpload(e.target.files);
-        });
+        // 檔案上傳 - 使用 Dropzone
+        this.initializeDropzone();
 
         // OCR 開始按鈕
         document.getElementById('start-ocr-btn')?.addEventListener('click', () => {
@@ -178,8 +161,80 @@ class App {
         document.getElementById('app-screen').classList.add('active');
 
         // 🚀 登入後立即預載 OCR 引擎
-        ocrEngine.preload().catch(err => {
+        enhancedOCREngine.preload().catch(err => {
             console.log('OCR 預載失敗，將在首次使用時重試');
+        });
+    }
+
+    /**
+     * 初始化 Dropzone
+     */
+    initializeDropzone() {
+        const uploadZone = document.getElementById('upload-zone');
+        if (!uploadZone || typeof Dropzone === 'undefined') {
+            console.warn('Dropzone 未載入，使用原生上傳');
+            this.initializeNativeUpload();
+            return;
+        }
+
+        // 禁用 Dropzone 自動發現
+        Dropzone.autoDiscover = false;
+
+        // 建立 Dropzone 實例
+        this.dropzone = new Dropzone(uploadZone, {
+            url: '#', // 不需要上傳到伺服器
+            autoProcessQueue: false, // 不自動處理佇列
+            acceptedFiles: 'image/*,.pdf',
+            maxFilesize: 10, // MB
+            addRemoveLinks: true,
+            dictDefaultMessage: '拖曳圖片或 PDF 至此，或點擊選擇檔案',
+            dictRemoveFile: '移除',
+            dictCancelUpload: '取消',
+            dictMaxFilesExceeded: '超過檔案數量限制',
+            
+            init: function() {
+                this.on('addedfile', (file) => {
+                    app.handleFileUpload([file]);
+                });
+
+                this.on('removedfile', (file) => {
+                    // 從 uploadedFiles 中移除
+                    const index = app.uploadedFiles.findIndex(f => f.name === file.name);
+                    if (index !== -1) {
+                        app.uploadedFiles.splice(index, 1);
+                        app.updateFilePreview();
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * 初始化原生上傳（降級策略）
+     */
+    initializeNativeUpload() {
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+
+        uploadZone?.addEventListener('click', () => fileInput?.click());
+
+        uploadZone?.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('drag-over');
+        });
+
+        uploadZone?.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('drag-over');
+        });
+
+        uploadZone?.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('drag-over');
+            this.handleFileUpload(e.dataTransfer.files);
+        });
+
+        fileInput?.addEventListener('change', (e) => {
+            this.handleFileUpload(e.target.files);
         });
     }
 
@@ -363,16 +418,44 @@ class App {
             </div>
         `).join('');
 
-        // 綁定預覽事件
-        grid.querySelectorAll('.file-preview-card').forEach(card => {
-            card.addEventListener('click', () => {
-                const fileId = card.dataset.id;
-                const file = this.uploadedFiles.find(f => f.id === fileId);
-                if (file) {
-                    this.showFullscreenPreview(file.data);
+        // 初始化 Viewer.js（如果可用）
+        if (typeof Viewer !== 'undefined') {
+            // 銷毀舊的 viewer
+            if (this.viewer) {
+                this.viewer.destroy();
+            }
+
+            // 建立新的 viewer
+            this.viewer = new Viewer(grid, {
+                inline: false,
+                navbar: true,
+                title: true,
+                toolbar: {
+                    zoomIn: true,
+                    zoomOut: true,
+                    oneToOne: true,
+                    reset: true,
+                    rotateLeft: true,
+                    rotateRight: true,
+                    flipHorizontal: true,
+                    flipVertical: true
+                },
+                viewed() {
+                    // 預覽開啟時的回調
                 }
             });
-        });
+        } else {
+            // 降級到原生全螢幕預覽
+            grid.querySelectorAll('.file-preview-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const fileId = card.dataset.id;
+                    const file = this.uploadedFiles.find(f => f.id === fileId);
+                    if (file) {
+                        this.showFullscreenPreview(file.data);
+                    }
+                });
+            });
+        }
     }
 
     /**
@@ -410,12 +493,40 @@ class App {
         }
 
         try {
-            // 初始化 OCR 引擎
-            await ocrEngine.initialize();
+            // 取得前處理模式
+            const preprocessMode = document.getElementById('preprocess-mode')?.value || 'speed';
+            
+            // 初始化影像前處理引擎（如果需要）
+            if (preprocessMode !== 'none') {
+                await imagePreprocessor.initialize();
+            }
 
-            // 批量識別
-            const images = this.uploadedFiles.map(f => f.data);
-            const ocrResults = await ocrEngine.recognizeBatch(images, (current, total, result) => {
+            // 初始化 OCR 引擎
+            await enhancedOCREngine.initialize();
+
+            // 前處理與批量識別
+            const images = [];
+            for (let i = 0; i < this.uploadedFiles.length; i++) {
+                showLoading(`影像前處理中... ${i + 1}/${this.uploadedFiles.length}`);
+                
+                let imageData = this.uploadedFiles[i].data;
+                
+                // 執行前處理
+                if (preprocessMode !== 'none') {
+                    try {
+                        const processedCanvas = await imagePreprocessor.preprocessImage(imageData, preprocessMode);
+                        imageData = processedCanvas.toDataURL('image/png');
+                    } catch (error) {
+                        console.error(`圖片 ${i + 1} 前處理失敗:`, error);
+                        // 使用原始圖片
+                    }
+                }
+                
+                images.push(imageData);
+            }
+
+            // 批量 OCR 識別
+            const ocrResults = await enhancedOCREngine.recognizeBatch(images, (current, total, result) => {
                 const progress = (current / total) * 100;
                 document.getElementById('ocr-progress').style.width = `${progress}%`;
             });
@@ -426,13 +537,34 @@ class App {
                 extractor.setKeywords(user.settings.amountKeywords);
             }
 
-            this.processedData = ocrResults.map((ocrResult, index) => {
-                // 執行分塊分析
+            // 初始化文件分類器與 ROI 抽取器
+            await documentClassifier.initialize();
+            await roiExtractor.initialize();
+
+            this.processedData = await Promise.all(ocrResults.map(async (ocrResult, index) => {
+                // 1. 文件分類
+                const classification = documentClassifier.classify(ocrResult.text);
+                console.log(`文件 ${index + 1} 分類為: ${classification.docType} (信心度: ${(classification.confidence * 100).toFixed(1)}%)`);
+
+                // 2. ROI 欄位抽取（根據文件類型）
+                let roiFields = null;
+                if (classification.docType !== 'other') {
+                    try {
+                        // 將 base64 轉換為 canvas
+                        const canvas = await this.base64ToCanvas(this.uploadedFiles[index].data);
+                        roiFields = await roiExtractor.extractFields(ocrResult, classification.docType, canvas);
+                        console.log(`文件 ${index + 1} ROI 抽取完成:`, roiFields);
+                    } catch (error) {
+                        console.error(`文件 ${index + 1} ROI 抽取失敗:`, error);
+                    }
+                }
+
+                // 3. 執行分塊分析
                 const chunks = documentChunker.analyzeLayout(ocrResult);
                 const invoiceFields = invoiceDetector.detectAllFields(chunks, ocrResult.lines);
                 const annotatedChunks = invoiceDetector.annotateChunks(chunks, invoiceFields);
 
-                // 傳統擷取（作為備援）
+                // 4. 傳統擷取（作為備援）
                 const extracted = extractor.extract(ocrResult);
                 const validation = validator.validate(extracted);
 
@@ -441,12 +573,14 @@ class App {
                     fileName: this.uploadedFiles[index].name,
                     fileData: this.uploadedFiles[index].data,
                     ocr: ocrResult,
+                    classification: classification,
+                    roiFields: roiFields, // 新增 ROI 抽取結果
                     chunks: annotatedChunks,
                     invoiceFields: invoiceFields,
                     ...extracted,
                     validation
                 };
-            });
+            }));
 
             // 顯示結果
             this.displayOCRResults();
@@ -467,13 +601,26 @@ class App {
         const container = document.getElementById('ocr-results');
         if (!container) return;
 
-        container.innerHTML = this.processedData.map((data, index) => `
+        container.innerHTML = this.processedData.map((data, index) => {
+            // 取得文件類型標籤
+            const docTypeLabel = data.classification ? 
+                documentClassifier.getDocTypeLabel(data.classification.docType) : '未分類';
+            
+            // 取得文件類型顏色
+            const docTypeColor = this.getDocTypeColor(data.classification?.docType);
+
+            return `
             <div class="ocr-result-card">
                 <div class="ocr-result-header">
                     <div class="ocr-result-title">${data.fileName}</div>
-                    <span class="status-chip ${data.validation.isValid ? 'normal' : 'error'}">
-                        ${data.validation.isValid ? '驗算通過' : '需確認'}
-                    </span>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="status-chip" style="background: ${docTypeColor}; border-color: ${docTypeColor};">
+                            ${docTypeLabel} ${data.classification ? `(${Math.round(data.classification.confidence * 100)}%)` : ''}
+                        </span>
+                        <span class="status-chip ${data.validation.isValid ? 'normal' : 'error'}">
+                            ${data.validation.isValid ? '驗算通過' : '需確認'}
+                        </span>
+                    </div>
                 </div>
                 <div class="ocr-result-lines">
                     ${data.ocr.lines.slice(0, 5).map(line => `
@@ -485,7 +632,45 @@ class App {
                     ${data.ocr.lines.length > 5 ? `<div style="color: var(--text-muted); font-size: 12px;">...還有 ${data.ocr.lines.length - 5} 行</div>` : ''}
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
+    }
+
+    /**
+     * 取得文件類型顏色
+     * @param {string} docType - 文件類型
+     * @returns {string} 顏色代碼
+     */
+    getDocTypeColor(docType) {
+        const colors = {
+            invoice: '#00d9ff',      // 青色（發票）
+            utility: '#ff9500',      // 橙色（水電）
+            labor_health: '#9d4edd', // 紫色（勞健保）
+            other: '#6c757d'         // 灰色（其他）
+        };
+
+        return colors[docType] || colors.other;
+    }
+
+    /**
+     * 將 base64 轉換為 canvas
+     * @param {string} base64 - base64 圖片資料
+     * @returns {Promise<HTMLCanvasElement>} canvas
+     */
+    async base64ToCanvas(base64) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas);
+            };
+            img.onerror = reject;
+            img.src = base64;
+        });
     }
 
     /**

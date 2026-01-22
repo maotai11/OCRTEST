@@ -12,26 +12,29 @@
 
 ## 依賴函式庫下載指引
 
-### 1. PaddleOCR.js（OCR 引擎）
+### 1. Tesseract.js（OCR 引擎）
 
-**選項 A：使用 @paddle-js-models/ocr（推薦）**
+**線上使用（推薦）**
 
-```bash
-# 在專案根目錄執行
-npm install @paddle-js-models/ocr
-```
+系統會自動從 CDN 載入 Tesseract.js，無需手動下載。
 
-下載後，將以下檔案複製到 `lib/paddleocr/`：
-- `node_modules/@paddle-js-models/ocr/dist/index.js` → `lib/paddleocr/paddle-ocr.min.js`
-- `node_modules/@paddle-js-models/ocr/dist/*.wasm` → `lib/paddleocr/`
-- 模型檔案（如有）→ `lib/paddleocr/models/`
+**離線使用（可選）**
 
-**選項 B：手動下載（若無 npm）**
+如需完全離線運行，請下載以下檔案：
 
-1. 前往：https://cdn.jsdelivr.net/npm/@paddle-js-models/ocr/dist/
-2. 下載 `index.js` 並重命名為 `paddle-ocr.min.js`
-3. 下載所有 `.wasm` 檔案
-4. 放置到 `lib/paddleocr/`
+1. 前往：https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/
+2. 下載 `tesseract.min.js`
+3. 下載語言包：
+   - 繁體中文：https://cdn.jsdelivr.net/npm/tesseract.js-core@5/lang-data/chi_tra.traineddata.gz
+   - 英文：https://cdn.jsdelivr.net/npm/tesseract.js-core@5/lang-data/eng.traineddata.gz
+4. 建立目錄結構：
+   ```
+   lib/tesseract/
+   ├── tesseract.min.js
+   └── lang-data/
+       ├── chi_tra.traineddata.gz
+       └── eng.traineddata.gz
+   ```
 
 ---
 

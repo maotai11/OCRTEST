@@ -20,16 +20,22 @@ function formatAmount(amount) {
 /**
  * 解析金額字串（移除逗號、貨幣符號）
  * @param {string} amountStr - 金額字串
- * @returns {number} 解析後的數字
+ * @returns {Decimal} 解析後的 Decimal 物件
  */
 function parseAmount(amountStr) {
-    if (typeof amountStr === 'number') return amountStr;
+    if (typeof amountStr === 'number') {
+        return new Decimal(amountStr);
+    }
     
     // 移除 NT$、$、逗號、空格
     const cleaned = amountStr.replace(/[NT$,\s]/g, '');
-    const parsed = parseFloat(cleaned);
     
-    return isNaN(parsed) ? 0 : parsed;
+    try {
+        return new Decimal(cleaned);
+    } catch (error) {
+        console.warn('金額解析失敗:', amountStr, error);
+        return new Decimal(0);
+    }
 }
 
 /**
