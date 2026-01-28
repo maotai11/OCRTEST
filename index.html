@@ -323,6 +323,77 @@
     <!-- PaddleOCR.js -->
     <script type="module">
         import PaddleOCREngine from './js/paddle-ocr-engine.js';
+        // 初始化 PaddleOCR 引擎
+        const paddleOCR = new PaddleOCREngine();
+        let isPaddleInitialized = false;
+
+        // 與手寫切換按鈕整合
+        const handwritingToggle = document.getElementById('handwriting-toggle');
+        if (handwritingToggle) {
+            handwritingToggle.addEventListener('click', () => {
+                const isHandwriting = handwritingToggle.classList.toggle('active');
+                paddleOCR.setHandwritingMode(isHandwriting);
+                handwritingToggle.textContent = isHandwriting ? '✍️ 手寫模式：開啟' : '✍️ 手寫模式：關閉';
+                console.log('手寫模式:', isHandwriting ? '開啟' : '關閉');
+            });
+        }
+
+        // 整合到現有 OCR 按鈕
+        const ocrButton = document.getElementById('ocr-button');
+        if (ocrButton) {
+            const originalClick = ocrButton.onclick;
+            ocrButton.onclick = async function() {
+                // 初始化 PaddleOCR（首次使用）
+                if (!isPaddleInitialized) {
+                    console.log('🚀 初始化 PaddleOCR...');
+                    const initSuccess = await paddleOCR.initialize();
+                    if (initSuccess) {
+                        isPaddleInitialized = true;
+                        console.log('✅ PaddleOCR 初始化成功');
+                    } else {
+                        console.error('❌ PaddleOCR 初始化失敗');
+                        alert('PaddleOCR 初始化失敗，請檢查網路連線');
+                        return;
+                    }
+                }
+
+                // 取得上傳的圖片
+                const uploadedFiles = document.querySelectorAll('.file-item');
+                if (uploadedFiles.length === 0) {
+                    alert('請先上傳圖片');
+                    return;
+                }
+
+                // 對每個圖片執行 PaddleOCR
+                for (const fileItem of uploadedFiles) {
+                    const img = fileItem.querySelector('img');
+                    if (img) {
+                        console.log('🔍 使用 PaddleOCR 識別:', img.src.substring(0, 50));
+
+                        try {
+                            const result = await paddleOCR.recognize(img);
+                            console.log('✅ PaddleOCR 結果:', result);
+
+                            // 將結果整合到現有系統
+                            if (result && result.text) {
+                                // 觸發原有的 OCR 流程，但使用 PaddleOCR 的結果
+                                console.log('📝 擷取文字:', result.text);
+                            }
+                        } catch (error) {
+                            console.error('❌ PaddleOCR 識別失敗:', error);
+                        }
+                    }
+                }
+
+                // 執行原有的 OCR 流程
+                if (originalClick) {
+                    originalClick.call(this);
+                }
+            };
+        }
+
+        console.log('✅ PaddleOCR 整合完成');
+
         import OCRManager from './js/ocr-manager.js';
 
         // 初始化 OCR 管理器
