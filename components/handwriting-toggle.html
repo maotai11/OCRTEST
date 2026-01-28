@@ -1,0 +1,41 @@
+
+<!-- 手寫辨識切換按鈕 -->
+<div class="ocr-mode-toggle">
+    <button id="handwritingToggle" class="handwriting-toggle" onclick="toggleHandwriting()">
+        <span class="icon">✍️</span>
+        <span class="label">手寫模式</span>
+        <span class="status">關閉</span>
+    </button>
+</div>
+
+<script>
+let handwritingMode = false;
+
+function toggleHandwriting() {
+    handwritingMode = !handwritingMode;
+    const button = document.getElementById('handwritingToggle');
+    const statusSpan = button.querySelector('.status');
+
+    if (handwritingMode) {
+        button.classList.add('active');
+        statusSpan.textContent = '開啟';
+        console.log('✍️ 已啟用手寫模式');
+    } else {
+        button.classList.remove('active');
+        statusSpan.textContent = '關閉';
+        console.log('🖨️ 已切換為印刷模式');
+    }
+
+    // 通知 OCR 引擎
+    if (window.ocrManager) {
+        window.ocrManager.paddleEngine.setHandwritingMode(handwritingMode);
+    }
+}
+
+// 修改 performOCR 函數使用手寫模式
+window.originalPerformOCR = window.performOCR;
+window.performOCR = async function(imageData, options = {}) {
+    options.handwriting = handwritingMode;
+    return window.originalPerformOCR(imageData, options);
+};
+</script>
