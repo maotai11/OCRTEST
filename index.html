@@ -310,6 +310,31 @@
     <script src="js/export.js"></script>
     <script src="js/app.js"></script>
     <script src="js/app-chunking.js"></script>
+
+    <!-- PaddleOCR.js -->
+    <script type="module">
+        import PaddleOCREngine from './js/paddle-ocr-engine.js';
+        import OCRManager from './js/ocr-manager.js';
+
+        // 初始化 OCR 管理器
+        window.ocrManager = new OCRManager();
+
+        console.log('✅ PaddleOCR.js 已載入');
+
+        // 替換原本的 OCR 功能
+        window.performOCR = async function(imageData, options = {}) {
+            try {
+                const result = await window.ocrManager.recognize(imageData, {
+                    handwriting: options.handwriting || false,
+                    lang: 'ch'  // 繁體中文
+                });
+                return result;
+            } catch (error) {
+                console.error('OCR 失敗:', error);
+                throw error;
+            }
+        };
+    </script>
 </body>
 
 </html>
