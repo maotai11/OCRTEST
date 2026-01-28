@@ -322,6 +322,10 @@
 
     <!-- PaddleOCR.js -->
     <script type="module">
+
+        // 防止重複處理
+        let isProcessing = false;
+
         import PaddleOCREngine from './js/paddle-ocr-engine.js';
         // 初始化 PaddleOCR 引擎
         const paddleOCR = new PaddleOCREngine();
