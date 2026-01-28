@@ -12,9 +12,18 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/export.css">
     <link rel="stylesheet" href="css/chunking.css">
+    <link rel="stylesheet" href="css/handwriting.css">
 </head>
 
 <body>
+    <!-- 手寫辨識切換 -->
+    <div class="handwriting-toggle-container" style="position: fixed; top: 20px; right: 20px; z-index: 1000;">
+        <button id="handwritingToggle" class="handwriting-toggle" onclick="toggleHandwriting()">
+            <span class="label">手寫模式</span>
+            <span class="status">關閉</span>
+        </button>
+    </div>
+
     <!-- 登入畫面 -->
     <div id="login-screen" class="screen active">
         <div class="login-container">
